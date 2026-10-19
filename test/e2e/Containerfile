@@ -1,0 +1,9 @@
+# Built for nested rootless podman; distrobox-export refuses to run as root.
+FROM quay.io/podman/stable:v5.6
+RUN dnf install -y -q distrobox git && dnf clean all
+USER podman
+ENV HOME=/home/podman PATH=/home/podman/.local/bin:$PATH
+RUN curl -fsSL https://mise.run | MISE_QUIET=1 sh
+# The base image shares the host UTS namespace and disables cgroups, but
+# distrobox sets a hostname and shares the host PID namespace.
+RUN printf '[containers]\nvolumes = ["/proc:/proc"]\ndefault_sysctls = []\nutsns = "private"\ncgroups = "enabled"\n' > ~/.config/containers/containers.conf

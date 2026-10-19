@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+#MISE description="Link the plugin and list an image's tags; installs need Linux and distrobox"
+set -euo pipefail
+
+mise plugin link --force distrobox .
+mise cache clear
+
+echo "Listing tags of docker.io/library/alpine..."
+versions="$(mise ls-remote distrobox:docker.io/library/alpine:busybox)"
+grep -qx "latest" <<<"$versions" || {
+    echo "expected a latest tag"
+    exit 1
+}
+[[ "$(mise latest distrobox:docker.io/library/alpine:busybox)" == "latest" ]]
+echo "✓ version listing works"
+
+if [[ "$(uname -s)" != "Linux" ]] || ! command -v distrobox >/dev/null; then
+    echo "skipping install test: needs Linux and distrobox"
+    exit 0
+fi
+
+tool="distrobox:docker.io/library/alpine:/bin/busybox@3.20"
+mise install "$tool"
+mise exec "$tool" -- busybox cat /etc/alpine-release | grep -q '^3\.20'
+echo "✓ exported command runs in the container"
+mise uninstall "$tool"
+echo "✓ uninstall works"
